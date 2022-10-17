@@ -15,7 +15,7 @@ Constraints:
 
 ## Observations
 
-### => Prefix zero are of no use
+### => Prefix zeros are of no use
 
 ```
 0001010
