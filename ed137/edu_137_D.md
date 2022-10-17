@@ -32,7 +32,7 @@ prefix zero would always be zero in result string and thus would be trimmed.
 
 **STEP 1: So remove prefix zero first**
 
-### Result string length would be same as given string
+### => Result string length would be same as given string
 
 **After trimming prefix zeros**, result string length should be same as
 given string.
@@ -50,7 +50,7 @@ Now, bruteforce starts with considering all possible substrings for s2.
 But, this gets TLE.
 So, we need to observe more.
 
-### Only need to consider prefix substrings
+### => Only need to consider prefix substrings
 
 For any substring \[i, j\], it's better to consider \[0, j\]
 
@@ -82,7 +82,7 @@ bits to OR so more chances of greater OR.
 
 So, now we are able to convert our O(n^2) time for calculating all s2 to O(n) time.
 
-### Only need to consider prefixes that make leftmost zero 1
+### => Only need to consider prefixes that make leftmost zero 1
 
 All prefixes that doesn't make leftmost zero 1 (after OR with s1) would
 have smaller OR than the ones that do that and hence, doesn't count in
