@@ -9,8 +9,6 @@ template <typename T> T read() {
 
 // precondition: a.len() <= b.len()
 std::string string_or(std::string_view a, std::string b) {
-  auto const na = a.size();
-  auto const nb = b.size();
   std::transform(std::crbegin(a), std::crend(a), std::crbegin(b),
                  std::rbegin(b), [](auto a, auto b) { return a | b; });
   return b;
