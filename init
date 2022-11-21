@@ -1,2 +1,3 @@
 mkdir -p $1/bin
 cp ./c $1
+cp ./hc $1
