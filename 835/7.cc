@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <bitset>
+#include <chrono>
 #include <cmath>
 #include <deque>
 #include <iostream>
@@ -15,6 +16,27 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+struct custom_hash {
+  static uint64_t splitmix64(uint64_t x) {
+    x += 0x9e3779b97f4a7c15;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+    return x ^ (x >> 31);
+  }
+
+  size_t operator()(uint64_t x) const {
+    static const uint64_t FIXED_RANDOM =
+        std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix64(x + FIXED_RANDOM);
+  }
+};
+
+using ll = long long;
+
+using safe_set = std::unordered_set<ll, custom_hash>;
+
+template <typename T> using safe_map = std::unordered_map<ll, T>;
 
 template <typename T> T read() {
   T t;
@@ -39,73 +61,65 @@ template <typename T> std::vector<T> read_matrix(int m, int n) {
   return vec;
 }
 
-using ll = long long;
+using graph_t = std::vector<std::vector<std::pair<ll, ll>>>;
 
-using graph_t = std::vector<std::unordered_map<ll, ll>>;
-
-void dfs(ll i, ll cur, std::unordered_set<ll> &xors, std::vector<bool> &visited,
-         graph_t const &graph) {
-  visited[i] = true;
+void dfs(ll i, ll cur, safe_set &xors, ll prev, graph_t const &graph) {
   for (auto const [n, w] : graph[i]) {
-    if (!visited[n]) {
-      auto res = cur ^ w;
-      xors.insert(res);
-      dfs(n, res, xors, visited, graph);
+    if (n != prev) {
+      auto const new_xor = cur ^ w;
+      xors.insert(new_xor);
+      dfs(n, new_xor, xors, i, graph);
     }
   }
 }
 
-void dfs1(ll i, ll b, ll cur, std::unordered_set<ll> &xors,
-          std::vector<bool> &visited, graph_t const &graph) {
-  visited[i] = true;
+bool dfs1(ll i, ll b, ll cur, safe_set const &xors, ll prev,
+          graph_t const &graph) {
+  bool ans = false;
   for (auto const [n, w] : graph[i]) {
-    if (!visited[n] and n != b) {
-      auto res = cur ^ w;
-      xors.insert(res);
-      dfs1(n, b, res, xors, visited, graph);
+    if (n != prev && n != b) {
+      auto const new_xor = cur ^ w;
+      if (xors.count(new_xor))
+        return true;
+      ans = ans || dfs1(n, b, new_xor, xors, i, graph);
     }
   }
+  return ans;
 }
 
-auto dfs1(graph_t const &graph, ll a, ll b) {
+auto dfs1(graph_t const &graph, ll a, ll b, safe_set const &xors) {
   auto const n = std::size(graph);
-  std::unordered_set<ll> xors;
-  std::vector visited(n, false);
-  dfs1(a, b, 0, xors, visited, graph);
-  return xors;
+  return dfs1(a, b, 0, xors, -1, graph);
 }
 
 auto dfs(graph_t const &graph, ll a) {
   auto const n = std::size(graph);
-  std::unordered_set<ll> xors;
-  std::vector visited(n, false);
-  dfs(a, 0, xors, visited, graph);
+  safe_set xors;
+  dfs(a, 0, xors, -1, graph);
   return xors;
 }
 
-auto solve() {
+bool solve() {
   auto const n = read<ll>();
   auto a = read<ll>();
   auto b = read<ll>();
   --a;
   --b;
-  std::vector<std::unordered_map<ll, ll>> graph(n);
+  graph_t graph(n);
   for (ll i = 0; i < n - 1; ++i) {
     auto u = read<ll>();
     auto v = read<ll>();
     auto w = read<ll>();
     --u;
     --v;
-    graph[u][v] = w;
-    graph[v][u] = w;
+    graph[u].push_back({v, w});
+    graph[v].push_back({u, w});
   }
-  auto const xor1 = dfs1(graph, a, b);
-  auto const xor2 = dfs(graph, b);
-  for (auto ele : xor1) {
-    if (xor2.count(ele))
-      return true;
+  auto const xors = dfs(graph, b);
+  if (dfs1(graph, a, b, xors)) {
+    return true;
   }
-  return false || xor2.count(0);
+  return xors.count(0);
 }
 
 int main() {
