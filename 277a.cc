@@ -62,25 +62,68 @@ template <typename T> auto read_matrix(int m, int n) {
   return vec;
 }
 
-auto solve() {}
+class dsu {
+private:
+  using ll = long long;
+  std::vector<ll> parent_;
+  std::vector<ll> size_;
+
+public:
+  dsu(ll n) : parent_(n), size_(n, 1) {
+    std::iota(std::begin(parent_), std::end(parent_), 0);
+  }
+
+  ll find(ll n) {
+    if (parent_[n] == n)
+      return n;
+    return parent_[n] = find(parent_[n]);
+  }
+
+  void combine(ll x, ll y) {
+    auto const px = find(x);
+    auto const py = find(y);
+    if (px == py)
+      return;
+    if (size_[px] >= size_[py]) {
+      size_[px] += size_[py];
+      parent_[py] = px;
+    } else {
+      size_[py] += size_[px];
+      parent_[px] = py;
+    }
+  }
+
+  auto size(ll n) { return size_[find(n)]; }
+};
 
 int main() {
   auto const n = read<ll>();
-  ll sum = 0;
+  auto const m = read<ll>();
+  std::vector<std::vector<ll>> person_lang(n);
+  std::vector<std::vector<ll>> lang_person(m);
+  ll zero_count = 0;
   for (ll i = 0; i < n; ++i) {
-    auto const a = read<ll>();
-    auto const b = read<ll>();
-    auto const c = read<ll>();
-    ll count = 0;
-    if (a == 1)
-      ++count;
-    if (b == 1)
-      ++count;
-    if (c == 1)
-      ++count;
-    if (count >= 2)
-      ++sum;
+    auto const sz = read<ll>();
+    for (ll j = 0; j < sz; ++j) {
+      auto const lang = read<ll>() - 1;
+      person_lang[i].push_back(lang);
+      lang_person[lang].push_back(i);
+    }
+    if (sz == 0)
+      ++zero_count;
   }
-  std::cerr << "here" << std::endl;
-  std::cout << sum + 1 << std::endl;
+  dsu dsu(n);
+  for (ll i = 0; i < m; ++i) {
+    for (ll j = 1; j < lang_person[i].size(); ++j) {
+      dsu.combine(lang_person[i][j], lang_person[i][j - 1]);
+    }
+  }
+  std::unordered_set<ll> st;
+  for (ll i = 0; i < n; ++i) {
+    st.insert(dsu.find(i));
+  }
+  if (zero_count == n)
+    std::cout << n << std::endl;
+  else
+    std::cout << st.size() - 1 << std::endl;
 }
