@@ -9,3 +9,9 @@
 - 1591D: Dynamic programming with 2 pointers can be powerful. Some times when
   we have O(n^2) time available, we can do something like F(i, j) = F(i + 1, j
   - 1. - f(i, j) kind of stuff
+
+## Proving techiniques
+
+- If a and b are 2 dependent variables contributing to something, then without
+  loss of generality we can define behaviour of a variable and according to
+  that behaviour of other variable would be chosen.
