@@ -16,6 +16,9 @@
   mod evaluates to negative. Solve them, and then solve the original question
   with composition function provided.
 
+- 1307C: Series like AP, GP is defined by a pair. i.e., each pair would be part
+  of a sequence.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
