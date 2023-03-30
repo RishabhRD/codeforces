@@ -8,7 +8,13 @@
 
 - 1591D: Dynamic programming with 2 pointers can be powerful. Some times when
   we have O(n^2) time available, we can do something like F(i, j) = F(i + 1, j
+
   - 1. - f(i, j) kind of stuff
+
+- 1547E: If there is somewhere mod function equation, its easy to break the
+  question in two cases. First: where mod evaluates to positive and second where
+  mod evaluates to negative. Solve them, and then solve the original question
+  with composition function provided.
 
 ## Proving techiniques
 
