@@ -19,6 +19,9 @@
 - 1307C: Series like AP, GP is defined by a pair. i.e., each pair would be part
   of a sequence.
 
+- 1461C: Its easy to calculate the probability of any event pass using 1- all
+  events fail.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
