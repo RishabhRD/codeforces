@@ -33,7 +33,8 @@ struct custom_hash {
   }
 };
 
-using ll = long long;
+using ll = __int128_t;
+using l = long long;
 constexpr ll mod = 1e9 + 7;
 constexpr char endl = '\n';
 template <typename T> using limits = std::numeric_limits<T>;
@@ -102,14 +103,15 @@ ll binary_search(ll low, ll high, Predicate &&predicate) {
 }
 
 auto solve(ll _t) {
-  std::optional<std::pair<ll, ll>> height_guess;
-  auto q = read<ll>();
+  ll oldhl = 1;
+  ll oldhh = 1e18;
+  ll q = read<l>();
   while (q--) {
-    auto const t = read<ll>();
+    ll const t = read<l>();
     if (t == 1) {
-      auto const a = read<ll>();
-      auto const b = read<ll>();
-      auto const d = read<ll>();
+      ll const a = read<l>();
+      ll const b = read<l>();
+      ll const d = read<l>();
 
       ll hl = 0;
       ll hh = 0;
@@ -118,38 +120,26 @@ auto solve(ll _t) {
         hh = a;
       } else {
         hh = (a - b) * (d - 1) + a;
-        hl = std::max((a - b) * (d - 2) + a + 1, (a - b) * (d - 1) + 1);
+        hl = (a - b) * (d - 2) + a + 1;
       }
-      if (height_guess.has_value()) {
-        auto &[oldhl, oldhh] = height_guess.value();
-        if (hl > oldhh || hl < oldhl) {
-          std::cout << 0 << ' ';
-        } else {
-          oldhl = std::max(oldhl, hl);
-          oldhh = std::min(oldhh, hh);
-          std::cout << 1 << ' ';
-        }
+      if (hl > oldhh || hh < oldhl) {
+        std::cout << 0 << ' ';
       } else {
-        height_guess = std::pair{hl, hh};
+        oldhl = std::max(oldhl, hl);
+        oldhh = std::min(oldhh, hh);
         std::cout << 1 << ' ';
       }
     } else {
-      auto const a = read<ll>();
-      auto const b = read<ll>();
-      if (!height_guess.has_value()) {
+      ll const a = read<l>();
+      ll const b = read<l>();
+      ll const dl = binary_search(
+          0, 1e18 + 1, [&](auto d) { return (a - b) * d + a < oldhl; });
+      ll const dh = binary_search(
+          0, 1e18 + 1, [&](auto d) { return (a - b) * d + a < oldhh; });
+      if (dl != dh) {
         std::cout << -1 << ' ';
       } else {
-        auto const [_hl, _hh] = height_guess.value();
-        auto const hl = _hl;
-        auto const hh = _hh;
-        auto const d = binary_search(
-            0, 1e12, [&](auto d) { return d * (a - b) + a < hl; });
-        // slog << d << ' ' << hl << ' ' << hh << endl;
-        if (d * (a - b) + a < hh) {
-          std::cout << -1 << ' ';
-        } else {
-          std::cout << d + 1 << ' ';
-        }
+        std::cout << l(dl + 1) << ' ';
       }
     }
   }
@@ -159,8 +149,8 @@ auto solve(ll _t) {
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
-  auto t = read<ll>();
-  std::set<ll> enabled_for{3};
+  ll t = read<l>();
+  std::set<ll> enabled_for{2};
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;
