@@ -22,6 +22,18 @@
 - 1461C: Its easy to calculate the probability of any event pass using 1- all
   events fail.
 
+- 1614C: We define a subset on criteria of including and not including an
+  element. Now its a binary criteria and doesn't depend on element in any ways.
+  Similary let's say there are only 2 kinds of elements. Now that kind of
+  element is included even or odd number of times is also a binary criteria.
+  And thus also defines subset. Now there are `2**n` total subsets. There are
+  `2**(n - 1)` subsets that does include them. Similarily, there are `2**(n -
+1)` subsets that include an element odd number of times. Xor of them should be
+
+1. If that is i bit, then their contribution to sum is (1 << i) _ (1 << (n - 1))
+   If that bit is there in any subset, then only it would contribute. That means
+   its kind of bitwise or _ (1 << (n - 1))
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
