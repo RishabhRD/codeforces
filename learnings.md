@@ -7,9 +7,7 @@
   prefix.
 
 - 1591D: Dynamic programming with 2 pointers can be powerful. Some times when
-  we have O(n^2) time available, we can do something like F(i, j) = F(i + 1, j
-
-  - 1. - f(i, j) kind of stuff
+  we have O(n^2) time available, we can do something like `F(i, j) = F(i + 1, j - 1)` + f(i, j) kind of stuff
 
 - 1547E: If there is somewhere mod function equation, its easy to break the
   question in two cases. First: where mod evaluates to positive and second where
@@ -29,10 +27,16 @@
   And thus also defines subset. Now there are `2**n` total subsets. There are
   `2**(n - 1)` subsets that does include them. Similarily, there are `2**(n -
 1)` subsets that include an element odd number of times. Xor of them should be
+  1 If that is i bit, then their contribution to sum is (1 << i) _ (1 << (n - 1))
+  If that bit is there in any subset, then only it would contribute. That means
+  its kind of bitwise or _ (1 << (n - 1))
 
-1. If that is i bit, then their contribution to sum is (1 << i) _ (1 << (n - 1))
-   If that bit is there in any subset, then only it would contribute. That means
-   its kind of bitwise or _ (1 << (n - 1))
+- 1408C: When you want binary search on doubles, binary search on integers only.
+  Because, that's classic. However, in predicate function convert that integer to
+  double. So, let's say min possible error is 1e-6 then just pass low \* 1e6, high \* 1e6.
+
+- 553A: When dealing with combinatorics question, its a good option
+  to think in lines, when it happened for i terms, then what for i + 1 term.
 
 ## Proving techiniques
 
