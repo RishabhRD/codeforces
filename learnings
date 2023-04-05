@@ -69,6 +69,8 @@
 - 742B: Sometimes having log n factor by sorting and then using equal range for
   counting is very easy to implement than comparing hashing version.
 
+- 1178D: There always exists a prime between [n, 3n/2] for all n > 3.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
