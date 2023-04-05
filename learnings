@@ -71,6 +71,8 @@
 
 - 1178D: There always exists a prime between [n, 3n/2] for all n > 3.
 
+- 630K: lcm(a, b, c) is NOT equal to (a * b * c) / gcd(a, b, c).
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
