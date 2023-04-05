@@ -66,6 +66,9 @@
 - 707C: If there is sometimes to solve `a * b = n`, then we can sometimes assume
   that a * b = n * 1 and can equate a = n and b = 1. So, think in those lines too.
 
+- 742B: Sometimes having log n factor by sorting and then using equal range for
+  counting is very easy to implement than comparing hashing version.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
