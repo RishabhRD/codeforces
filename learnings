@@ -73,6 +73,20 @@
 
 - 630K: lcm(a, b, c) is NOT equal to (a * b * c) / gcd(a, b, c).
 
+- 566F: In divisibility dp, we can maintain an dp state like dp[x] is
+  ans ending with number x. And do dp in forward direction:
+  ```
+  for(ll i = 1; i <= MAX; ++i){
+    dp[i] = max(dp[i], cnt[i]);
+    for(ll j = i + i; j <= MAX; j += i){
+       dp[j] = max(dp[j], dp[i] + cnt[j]);
+    }
+  }
+  ```
+
+  And this is O(n log n) (MAX = n, so MAX number should be like 1e6)
+  Also, many times having cnt[x] in these kinds of problems is useful.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
