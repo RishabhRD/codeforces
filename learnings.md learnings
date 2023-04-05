@@ -38,6 +38,34 @@
 - 553A: When dealing with combinatorics question, its a good option
   to think in lines, when it happened for i terms, then what for i + 1 term.
 
+- 1242A: Chineese remainder theorom is very useful, when dealing with
+  prime factors and overlapping of their multiples. It has 2 ways to think:
+
+  ```
+  === is congruent to operator
+  x === a1 mod n1
+  x === a2 mod n2
+  and so on,
+  then there exists a unique solution modulo N = n1n2
+  ```
+
+  Or there is another way
+
+  ```
+  n = n1n2
+
+  For every 1 <= i < n1, 1 <= j < n2
+
+  Then, there exists x <= n st
+  x === i mod n1
+  x === j mod n2
+
+  i.e., x = a1n1 + i, x = a2n2 + j
+  ```
+
+- 707C: If there is sometimes to solve `a * b = n`, then we can sometimes assume
+  that a * b = n * 1 and can equate a = n and b = 1. So, think in those lines too.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
