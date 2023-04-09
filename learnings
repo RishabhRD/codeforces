@@ -87,6 +87,18 @@
   And this is O(n log n) (MAX = n, so MAX number should be like 1e6)
   Also, many times having cnt[x] in these kinds of problems is useful.
 
+- 1084C: Many times, some combinatorics DP problem can be reduced by formula.
+  And choosing one from atleast one can be done via: (n1 + 1) * (n2 + 1) * (n3 +
+  1) * ... - 1 +1 is to include the case of choosing nothing from that list and
+  -1 is case for choosing nothing from full list.
+
+- 677C: When there is any number with base 2^n, then binary conversion of that
+  number is just binary conversion of each digit represented in n-bits.
+
+  If we need to find bitwise and of 2 things equal s, then number of ways is
+  counted as if there is 1 bit in s, then that is only possible by having 1 & 1
+  so one choice. For all zero bits there are 3 different choice 0 & 1, 1 & 0, 0 & 0.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
