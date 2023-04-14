@@ -99,6 +99,14 @@
   counted as if there is 1 bit in s, then that is only possible by having 1 & 1
   so one choice. For all zero bits there are 3 different choice 0 & 1, 1 & 0, 0 & 0.
 
+- 1426D: Sometimes maintaining hash set of prefix sum helps. It reduces the
+  algorithm of finding if any segment sum ends at i (for all i) with some
+  specific value.
+
+- 1486B: When dealing with something like manhattan distance, its also worthwhile
+  to consider x axis and y axis fully seperately. It actually simplifies the
+  problem in single dimension.
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without

@@ -22,7 +22,6 @@ using ll = long long;
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 struct custom_hash {
@@ -238,188 +237,58 @@ namespace vw = std::views;   // NOLINT
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-// group by {{{
-namespace GroupBy {
-
-template <typename T> class wrapper {
-  T val_;
-
-public:
-  wrapper() = default;
-  wrapper(T val) : val_(std::move(val)) {}
-
-  constexpr T const *operator->() const { return std::addressof(val_); }
-  constexpr T *operator->() { return std::addressof(val_); }
-  constexpr T const &operator*() const { return val_; }
-  constexpr T &operator*() { return val_; }
-
-  constexpr explicit operator bool() const noexcept { return true; }
-  constexpr bool has_value() const noexcept { return true; }
-};
-
-template <typename T> class semiregular {
-  std::optional<T> val_;
-
-public:
-  semiregular() : val_(std::in_place) {}
-
-  constexpr semiregular(T t) : val_(std::move(t)) {}
-  constexpr semiregular(std::nullopt_t) : val_(std::nullopt) {}
-
-  constexpr semiregular(semiregular const &) = default;
-  constexpr semiregular(semiregular &&) = default;
-
-  constexpr semiregular &operator=(semiregular const &other) {
-    if (this != std::addressof(other)) {
-      if (other)
-        emplace(*other);
-      else
-        reset();
-    }
-    return *this;
-  }
-
-  constexpr semiregular &operator=(semiregular &&other) {
-    if (this != std::addressof(other)) {
-      if (other)
-        emplace(std::move(*other));
-      else
-        reset();
-    }
-    return *this;
-  }
-
-  constexpr void reset() { val_.reset(); }
-
-  constexpr T const *operator->() const { return std::addressof(val_.value()); }
-  constexpr T *operator->() { return std::addressof(val_.value()); }
-  constexpr T const &operator*() const { return val_.value(); }
-  constexpr T &operator*() { return val_.value(); }
-
-  constexpr explicit operator bool() const noexcept { return val_.has_value(); }
-  constexpr bool has_value() const noexcept { return val_.has_value(); }
-
-  template <typename... Args> constexpr T &emplace(Args &&...args) {
-    val_.emplace(std::forward<Args>(args)...);
-    return val_.value();
-  }
-};
-
-template <typename T>
-using semiregular_box_t =
-    typename std::conditional<std::semiregular<T>, wrapper<T>,
-                              semiregular<T>>::type;
-
-class group_by_sentinal_t {};
-
-template <typename Iter, typename F> class group_by_iterator {
-public:
-  using iterator_category = std::forward_iterator_tag;
-  using value_type = std::ranges::subrange<Iter, Iter>;
-  using difference_type = long long;
-
-  group_by_iterator(Iter begin, Iter end, F f) : begin(begin), end(end), f(f) {}
-  // TODO: Bug in codeforces, this default initializable not required
-  group_by_iterator() : f(std::nullopt) {}
-
-  value_type operator*() const { return {begin, compute_end()}; }
-
-  group_by_iterator &operator++() {
-    begin = compute_end();
-    cached_end = std::nullopt;
-    return *this;
-  }
-
-  group_by_iterator operator++(int) const {
-    auto cur = *this;
-    begin = compute_end();
-    cached_end = std::nullopt;
-    return cur;
-  }
-
-  bool operator==(group_by_iterator const &other) const {
-    return begin == other.begin && end == other.end;
-  }
-
-  bool operator==(group_by_sentinal_t) const { return begin == end; }
-
-private:
-  Iter compute_end() const {
-    if (cached_end.has_value())
-      return cached_end.value();
-    if (begin == end) {
-      return end;
-    }
-    Iter prev = begin;
-    Iter cur = std::next(prev);
-    while (cur != end) {
-      if ((*f)(*prev, *cur)) {
-        prev = cur;
-        ++cur;
-      } else {
-        break;
-      }
-    }
-    cached_end = cur;
-    return cur;
-  }
-
-  Iter begin;
-  Iter end;
-  mutable std::optional<Iter> cached_end;
-  semiregular_box_t<F> f;
-};
-} // namespace GroupBy
-
-template <typename Iter, typename F>
-auto group_by(Iter begin, Iter end, F &&f) {
-  using namespace GroupBy;
-  return std::ranges::subrange{group_by_iterator<Iter, F>{begin, end, f},
-                               group_by_sentinal_t{}};
-}
-
-template <typename Range, typename F> auto group_by(Range &&rng, F f) {
-  using namespace GroupBy;
-  using Iter = decltype(begin(std::declval<Range>()));
-  return std::ranges::subrange<group_by_iterator<Iter, F>, group_by_sentinal_t>(
-      group_by_iterator<Iter, F>{begin(rng), end(rng), std::move(f)},
-      group_by_sentinal_t{});
-}
-// group by }}}
-
 auto solve(ll _t) {
-  auto const str = read<std::string>();
-  auto solve_for = [&](char a, char b) {
-    auto cmp = [&](char c, char d) {
-      return (a == c && b == d) || (a == d && b == c);
-    };
-    auto rng =
-        group_by(str, cmp) //
-        | vw::filter([&](auto rng) {
-            return (rng::distance(rng) > 1) &&
-                   ((*rng.begin() == a) || (*rng.begin() == b));
-          })                                                                 //
-        | vw::transform([](auto rng) { return std::ranges::distance(rng); }) //
-        | vw::transform([](auto n) -> ll {
-            if (n % 2 == 0)
-              return 1;
-            else
-              return n / 2 + 1;
-          });
-
-    ll cur = 1;
-    for (auto n : rng) {
-      cur *= n;
+  auto const n = read<ll>();
+  {
+    ll cur1 = 2 * n;
+    ll cur2 = 2;
+    bool first = true;
+    for (ll i = 0; i < n; ++i) {
+      if (first) {
+        std::cout << cur1 << ' ';
+        cur1 -= 2;
+      } else {
+        std::cout << cur2 << ' ';
+        cur2 += 2;
+      }
+      first = !first;
     }
-    return cur;
-  };
-  auto const ans = solve_for('4', '5') * solve_for('3', '6') *
-                   solve_for('2', '7') * solve_for('1', '8');
-  std::cout << ans << endl;
+    std::cout << endl;
+  }
+  {
+    std::vector<ll> other(n);
+    ll cur1 = 2 * n - 1;
+    ll cur2 = 1;
+    bool first = true;
+    for (ll i = 0; i < n; ++i) {
+      if (first) {
+        other[i] = cur1;
+        cur1 -= 2;
+      } else {
+        other[i] = cur2;
+        cur2 += 2;
+      }
+      first = !first;
+    }
+    std::reverse(std::begin(other), std::end(other));
+    for (auto n : other) {
+      std::cout << n << ' ';
+    }
+    std::cout << endl;
+  }
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
-  solve(0);
+  auto t = read<ll>();
+  std::set<ll> enabled_for;
+  for (ll i = 0; i < t; ++i) {
+    if (enabled_for.count(i) || enabled_for.size() == 0) {
+      log_enabled = true;
+    } else {
+      log_enabled = false;
+    }
+    solve(i);
+  }
 }

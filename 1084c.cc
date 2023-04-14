@@ -315,7 +315,7 @@ auto solve(ll _t) {
   mii ans{1};
   for (auto rng : group_by(str, std::equal_to<>{})) {
     if (*rng.begin() == 'a') {
-      ans *= mii{std::ranges::distance(rng) + 1};
+      ans *= mii{rng.end() - rng.begin() + 1};
     }
   }
   std::cout << ans - mii{1} << endl;
