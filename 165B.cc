@@ -755,7 +755,8 @@ constexpr auto fold_left(I first, S last, T init, F f) {
 template <std::ranges::input_range R, class T,
           indirectly_binary_left_foldable<T, std::ranges::iterator_t<R>> F>
 constexpr auto fold_left(R &&r, T init, F f) {
-  return fold_left(begin(r), end(r), std::move(init), f);
+  return fold_left(begin(std::forward<R>(r)), end(std::forward<R>(r)),
+                   std::move(init), f);
 }
 
 template <std::input_iterator I, std::sentinel_for<I> S, class T,
@@ -905,34 +906,27 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const x = read<ll>();
-  auto const nums = read_vec<ll>(n);
+  auto const k = read<ll>();
 
-  auto const cntx = rng::count(nums, x);
+  auto cnt_lines_for = [n, k](auto v) {
+    ll sum = 0;
+    ll cur = 1;
+    while (v) {
+      sum += v;
+      v /= k;
+    }
 
-  auto const sum =
-      vw::transform(nums, rd::bind_back(std::minus<>{}, x)) | rd::sum;
+    return sum;
+  };
 
-  if (cntx == n) {
-    return 0ll;
-  } else if (cntx > 0 || sum == 0) {
-    return 1ll;
-  } else {
-    return 2ll;
-  }
+  auto const v = *rng::partition_point(
+      vw::iota(1ll, n), [&](auto v) { return cnt_lines_for(v) < n; });
+
+  std::cout << v << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
-  auto t = read<ll>();
-  std::set<ll> enabled_for;
-  for (ll i = 0; i < t; ++i) {
-    if (enabled_for.count(i) || enabled_for.size() == 0) {
-      log_enabled = true;
-    } else {
-      log_enabled = false;
-    }
-    std::cout << solve(i) << endl;
-  }
+  solve(0);
 }

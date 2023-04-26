@@ -107,6 +107,9 @@
   to consider x axis and y axis fully seperately. It actually simplifies the
   problem in single dimension.
 
+- 1490F: Number of different frequencies of elements is maximum sqrt(n). That
+  means O(sqrt(n) * sqrt(n)).
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without
