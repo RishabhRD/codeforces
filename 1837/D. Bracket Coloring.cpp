@@ -335,8 +335,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,13 +345,10 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  { c.reserve(std::ranges::range_size_t<R>(0)) };
+};
 
 template <class C>
 concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
@@ -363,11 +360,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -697,52 +695,78 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
+bool can_simple(std::string_view str) {
+  ll cur = 0;
+  for (auto c : str) {
+    if (c == '(')
+      ++cur;
+    else
+      --cur;
+
+    if (cur < 0)
+      return false;
+  }
+  return cur == 0;
+}
+
+bool can_simple_reverse(std::string_view str) {
+  ll cur = 0;
+  for (auto c : str) {
+    if (c == ')')
+      ++cur;
+    else
+      --cur;
+
+    if (cur < 0)
+      return false;
+  }
+  return cur == 0;
+}
+
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const str = read<std::string>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  if (rng::count(str, '(') != rng::count(str, ')')) {
+    std::cout << -1 << endl;
+    return;
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
+  if (can_simple(str) || can_simple_reverse(str)) {
+    std::cout << 1 << endl;
+    for (auto c : str) {
+      std::cout << 1 << ' ';
+    }
+    std::cout << endl;
+    return;
+  }
+
+  std::vector<ll> res(n);
+
+  ll cur = 0;
+  for (ll i = 0; i < n; ++i) {
+    bool to_continue = false;
+    if (str[i] == '(') {
+      if (cur < 0)
+        to_continue = true;
+      ++cur;
     } else {
-      return prefix[j] - prefix[i - 1];
+      --cur;
+      if (cur < 0)
+        to_continue = true;
     }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
+    if (to_continue) {
+      continue;
     }
+    res[i] = 1;
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+  for (auto &n : res)
+    if (n == 0)
+      n = 2;
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
+  std::cout << 2 << endl;
+  for (auto n : res) {
     std::cout << n << ' ';
   }
   std::cout << endl;
@@ -752,7 +776,7 @@ int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

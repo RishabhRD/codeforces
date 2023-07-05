@@ -699,60 +699,104 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const s = read<std::string>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  std::map<char, ll> freq;
+  for (auto c : s)
+    ++freq[c];
+
+  std::vector<std::pair<ll, char>> freq_pair;
+  for (auto [k, v] : freq) {
+    if (v != 0) {
+      freq_pair.push_back({v, k});
+    }
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
+  rng::sort(freq_pair, std::greater<>{});
+
+  auto cost_of = [&](ll num_letters) {
+    auto const amount = n / num_letters;
+    ll sum = 0;
+    for (auto [f, c] : freq_pair) {
+      if (num_letters == 0)
+        break;
+      if (f >= amount) {
+        sum += amount;
+      } else {
+        sum += f;
+      }
+      --num_letters;
     }
+    return n - sum;
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  ll min = n;
+  ll num_letters = 0;
+  for (ll i = 1; i <= 26; ++i) {
+    if (n % i != 0)
+      continue;
+    auto const cost = cost_of(i);
+    if (cost < min) {
+      num_letters = i;
+      min = cost;
+    }
+  }
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+  std::unordered_map<char, ll> req_freq;
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+  std::cout << min << std::endl;
+
+  ll const amount = n / num_letters;
+
+  std::string res = s;
+
+  for (auto [f, k] : freq_pair) {
+    if (num_letters != 0) {
+      req_freq[k] = amount;
+      --num_letters;
+    }
+  }
+
+  for (char c = 'a'; c <= 'z' && num_letters; ++c) {
+    if (freq[c])
+      continue;
+    else {
+      req_freq[c] = amount;
+      --num_letters;
+    }
+  }
+
+  for (char c = 'a'; c <= 'z'; ++c) {
+    for (auto &cur_c : res) {
+      if (cur_c == c) {
+        --req_freq[c];
+        if (req_freq[c] < 0) {
+          cur_c = '_';
+        }
       }
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  for (char c = 'a'; c <= 'z'; ++c) {
+    for (auto &cur_c : res) {
+      if (cur_c == '_') {
+        if (req_freq[c] > 0) {
+          --req_freq[c];
+          cur_c = c;
+        }
+      }
+    }
   }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << res << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

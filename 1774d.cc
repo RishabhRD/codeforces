@@ -699,60 +699,80 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const m = read<ll>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  std::vector matrix(n, std::vector(m, 0ll));
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
+  ll cnt_one = 0;
   for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+    for (ll j = 0; j < m; ++j) {
+      std::cin >> matrix[i][j];
+      if (matrix[i][j] == 1) {
+        ++cnt_one;
       }
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  if (cnt_one % n != 0) {
+    std::cout << -1 << endl;
+    return;
   }
 
-  std::vector<ll> ans(n);
+  ll const ideal_cnt = cnt_one / n;
+
+  std::vector<ll> less;
+  std::vector<ll> more;
+
   for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+    auto const &vec = matrix[i];
+    auto const num_one = rng::count(vec, 1);
+    if (num_one < ideal_cnt) {
+      less.push_back(i);
+    } else if (num_one > ideal_cnt) {
+      more.push_back(i);
+    }
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
+
+  std::vector<std::tuple<ll, ll, ll>> res;
+
+  while (less.size()) {
+    auto const i = less.back();
+    less.pop_back();
+    auto const j = more.back();
+    more.pop_back();
+
+    ll cnt_i = rng::count(matrix[i], 1);
+    ll cnt_j = rng::count(matrix[j], 1);
+
+    for (ll k = 0; k < m && cnt_i < ideal_cnt && cnt_j > ideal_cnt; ++k) {
+      if (matrix[i][k] == 0 && matrix[j][k] == 1) {
+        ++cnt_i;
+        --cnt_j;
+        matrix[i][k] = 1;
+        matrix[j][k] = 0;
+        res.push_back({i, j, k});
+      }
+    }
+
+    if (cnt_i < ideal_cnt) {
+      less.push_back(i);
+    }
+    if (cnt_j > ideal_cnt) {
+      more.push_back(j);
+    }
   }
-  std::cout << endl;
+
+  std::cout << res.size() << endl;
+  for (auto [i, j, k] : res) {
+    std::cout << i + 1 << ' ' << j + 1 << ' ' << k + 1 << endl;
+  }
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

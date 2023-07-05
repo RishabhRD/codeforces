@@ -110,6 +110,13 @@
 - 1490F: Number of different frequencies of elements is maximum sqrt(n). That
   means O(sqrt(n) * sqrt(n)).
 
+- 1766d: If you can't store all prime factors from 1 to n due to memory
+  limits then just store the minimum one of each. With that, you can calculate
+  all prime factors in log n time. By algorithm:
+  n -> min_prime[n] (reduce as much as possible with this factors)
+  n1 -> min_prime[n1] (again reduce...)
+  ... and so on
+
 ## Proving techiniques
 
 - If a and b are 2 dependent variables contributing to something, then without

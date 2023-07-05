@@ -1,5 +1,3 @@
-using ll = long long;
-
 // codeforces template  {{{
 // vim: foldmethod=marker
 #include <algorithm>
@@ -23,6 +21,8 @@ using ll = long long;
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+using ll = long long;
 
 // hashing {{{
 struct custom_hash {
@@ -335,8 +335,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,13 +345,10 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  { c.reserve(std::ranges::range_size_t<R>(0)) };
+};
 
 template <class C>
 concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
@@ -363,11 +360,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -699,60 +697,40 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const k = read<ll>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  auto const a = make_sorted(read_vec<ll>(n), std::greater<>{});
+
+  std::map<ll, ll> freq;
+  for (auto n : a) {
+    ++freq[n];
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
+  std::map<ll, ll> used_freq;
+  for (ll i = 0; i < k; ++i) {
+    ++used_freq[a[i]];
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  std::vector<mii> factorial(1001, 1);
+  for (ll i = 1; i <= 1000; ++i) {
+    factorial[i] = factorial[i - 1] * mii{i};
   }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+  mii ans = 1;
+  for (auto const [k, r] : used_freq) {
+    auto const n = freq[k];
+    auto const cur = factorial[n] / (factorial[r] * factorial[n - r]);
+    ans *= cur;
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+
+  std::cout << ans.n << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for{1};
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

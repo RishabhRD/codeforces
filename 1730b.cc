@@ -699,60 +699,39 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
-
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  auto nums = read_vec<ll>(n);
+  auto ts = read_vec<ll>(n);
+  for (auto &n : nums) {
+    n *= 1e7;
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
+  for (auto &n : ts) {
+    n *= 1e7;
+  }
+
+  ll const max = 1e15;
+
+  auto cost = [&](auto x) {
+    ll max = 0;
+    for (ll i = 0; i < n; ++i) {
+      max = std::max(max, ts[i] + std::abs(x - nums[i]));
     }
+    return max;
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  auto const x = *rng::partition_point(
+      vw::iota(0ll, max + 1), [&](auto x) { return cost(x) > cost(x + 1); });
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+  double factor = 1e7;
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
-  }
-
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << std::setprecision(8) << x / 1e7 << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

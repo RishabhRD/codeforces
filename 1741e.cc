@@ -697,62 +697,53 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
+bool dfs(ll i, std::vector<std::vector<ll>> const &graph, std::vector<ll> &dp) {
+  if (i == graph.size())
+    return true;
+  if (dp[i] != -1)
+    return dp[i];
+
+  bool ans = false;
+
+  for (auto const j : graph[i]) {
+    ans = ans || dfs(j + 1, graph, dp);
+  }
+
+  return dp[i] = ans;
+}
+
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const nums = read_vec<ll>(n);
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
-
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
+  std::vector graph(n, std::vector<ll>());
 
   for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+    auto const j = i + nums[i];
+    if (j < n) {
+      graph[i].push_back(j);
+    }
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
+    auto const k = i - nums[i];
+    if (k >= 0) {
+      graph[k].push_back(i);
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+  std::vector dp(n, -1ll);
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+  if (dfs(0, graph, dp)) {
+    std::cout << "YES" << endl;
+  } else {
+    std::cout << "NO" << endl;
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

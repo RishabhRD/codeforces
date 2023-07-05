@@ -335,8 +335,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,13 +345,10 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  { c.reserve(std::ranges::range_size_t<R>(0)) };
+};
 
 template <class C>
 concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
@@ -363,11 +360,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -699,60 +697,84 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const nums = read_vec<ll>(n);
 
-  std::vector prefix(b);
+  std::vector prefix(n, 0ll);
+  std::vector neg_prefix(n, 0ll);
+  for (ll i = 0; i < n; ++i) {
+    if (std::abs(nums[i]) == 2)
+      prefix[i] = 1;
+    if (nums[i] < 0)
+      neg_prefix[i] = 1;
+  }
   for (ll i = 1; i < n; ++i) {
     prefix[i] += prefix[i - 1];
+    neg_prefix[i] += neg_prefix[i - 1];
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
+  auto get_cnt = [&](ll i, ll j) {
+    if (i > j)
+      return 0ll;
+    if (i == 0)
       return prefix[j];
-    } else {
+    else
       return prefix[j] - prefix[i - 1];
-    }
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  auto neg_cnt = [&](ll i, ll j) {
+    if (i > j)
+      return 0ll;
+    if (i == 0)
+      return neg_prefix[j];
+    else
+      return neg_prefix[j] - neg_prefix[i - 1];
+  };
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+  ll max_cnt = 0;
+  ll x = n;
+  ll y = 0;
+  std::vector<std::pair<ll, ll>> ranges;
+  auto cur = std::begin(nums);
+  auto itr = std::find(std::begin(nums), std::end(nums), 0);
+  while (true) {
+    ll const low = cur - std::begin(nums);
+    ll const high = itr - std::begin(nums);
+    if (neg_cnt(low, high - 1) % 2 == 0) {
+      ranges.push_back({low, high - 1});
+    } else {
+      for (ll i = low; i < high; ++i) {
+        if (nums[i] < 0) {
+          if (i - 1 >= low && neg_cnt(low, i - 1) % 2 == 0)
+            ranges.push_back({low, i - 1});
+          if (i + 1 <= high - 1 && neg_cnt(i + 1, high - 1) % 2 == 0)
+            ranges.push_back({i + 1, high - 1});
+        }
       }
+    }
+
+    if (itr == std::end(nums))
+      break;
+
+    cur = itr + 1;
+    itr = std::find(itr + 1, std::end(nums), 0);
+  }
+
+  for (auto [a, b] : ranges) {
+    if (get_cnt(a, b) > max_cnt) {
+      max_cnt = get_cnt(a, b);
+      x = a;
+      y = n - b - 1;
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << x << ' ' << y << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for{3};
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

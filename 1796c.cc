@@ -698,54 +698,43 @@ constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
-  auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const l = read<ll>();
+  auto const r = read<ll>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  auto const n = r - l + 1;
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
+  auto get_cnt_1 = [&](auto l) {
+    ll cnt = 0;
+    while (l <= r) {
+      ++cnt;
+      l *= 2;
     }
+    return cnt;
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
+  auto get_cnt_2 = [&](auto l) {
+    ll cnt = 0;
+    if (l <= r) {
+      ++cnt;
+      l *= 3;
     }
-  }
+    while (l <= r) {
+      ++cnt;
+      l *= 2;
+    }
+    return cnt;
+  };
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+  auto const max_cnt = get_cnt_1(l);
+  auto const first_r = *rng::partition_point(
+      vw::iota(l, r + 1), [&](auto i) { return get_cnt_1(i) == max_cnt; });
+  auto const second_r = *rng::partition_point(
+      vw::iota(l, r + 1), [&](auto i) { return get_cnt_2(i) == max_cnt; });
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  auto const first_cnt = first_r - l;
+  auto const second_cnt = (second_r - l) * (max_cnt - 1);
+
+  std::cout << max_cnt << ' ' << first_cnt + second_cnt << endl;
 }
 
 int main() {

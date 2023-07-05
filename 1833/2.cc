@@ -228,10 +228,10 @@ namespace rd {
   }
 template <class F, class... Args>
 constexpr auto bind_back(F &&f, Args &&...args) {
-  return [ f_ = std::forward<F>(f),
-           ... args_ = std::forward<Args>(args) ](auto &&...other_args)
-    requires std::invocable<F &, decltype(other_args)..., Args &...>
-  {
+  return [
+    f_ = std::forward<F>(f), ... args_ = std::forward<Args>(args)
+  ](auto &&...other_args) requires std::invocable<F &, decltype(other_args)...,
+                                                  Args &...> {
     return std::invoke(f_, std::forward<decltype(other_args)>(other_args)...,
                        args_...);
   };
@@ -288,7 +288,7 @@ public:
   constexpr explicit pipeable(F &&f_p) noexcept : f(std::forward<F>(f_p)) {}
 
   template <typename... Xs>
-    requires std::invocable<F, Xs...>
+  requires std::invocable<F, Xs...>
   constexpr auto operator()(Xs &&...xs) const {
     return std::invoke(f, std::forward<Xs>(xs)...);
   }
@@ -303,9 +303,8 @@ public:
 };
 
 template <typename Arg, typename F>
-constexpr auto operator|(Arg &&arg, pipeable<F> const &p)
-  requires std::invocable<F, Arg &&>
-{
+constexpr auto
+operator|(Arg &&arg, pipeable<F> const &p) requires std::invocable<F, Arg &&> {
   return std::invoke(p, std::forward<Arg>(arg));
 }
 
@@ -322,7 +321,7 @@ public:
   constexpr explicit curried(F &&f_p) noexcept : f(std::forward<F>(f_p)) {}
 
   template <typename... Xs>
-    requires std::invocable<F, Xs...>
+  requires std::invocable<F, Xs...>
   constexpr auto operator()(Xs &&...xs) const {
     return std::invoke(f, std::forward<Xs>(xs)...);
   }
@@ -335,8 +334,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,16 +344,15 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  {c.reserve(std::ranges::range_size_t<R>(0))};
+};
 
 template <class C>
-concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
+concept insertable = requires(C c) {
+  std::inserter(c, std::ranges::end(c));
+};
 
 template <class> constexpr inline bool always_false = false;
 
@@ -363,11 +361,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -402,8 +401,7 @@ struct ctad_container {
 
 template <std::ranges::input_range C, std::ranges::input_range R,
           typename... Args>
-  requires(!std::ranges::view<C>)
-constexpr C to(R &&r, Args &&...args) {
+requires(!std::ranges::view<C>) constexpr C to(R &&r, Args &&...args) {
   // Construct from range
   if constexpr (std::constructible_from<C, R, Args...>) {
     return C(std::forward<R>(r), std::forward<Args>(args)...);
@@ -699,52 +697,23 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
+  auto const k = read<ll>();
   auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
-
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
-
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
+  auto const b = make_sorted(read_vec<ll>(n));
+  std::vector<std::pair<ll, ll>> with_pairs;
   for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
+    with_pairs.push_back({a[i], i});
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+  rng::sort(with_pairs);
 
   std::vector<ll> ans(n);
   for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+    ans[with_pairs[i].second] = b[i];
   }
-  for (auto n : ans) {
+
+  for (auto n : ans)
     std::cout << n << ' ';
-  }
   std::cout << endl;
 }
 
@@ -752,7 +721,7 @@ int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

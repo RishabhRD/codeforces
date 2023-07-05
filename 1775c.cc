@@ -1,4 +1,4 @@
-using ll = long long;
+using ll = unsigned long long;
 
 // codeforces template  {{{
 // vim: foldmethod=marker
@@ -697,68 +697,53 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-auto solve(ll _t) {
+long long solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const m = read<ll>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  std::bitset<64> bn(n);
+  std::bitset<64> bm(m);
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
+  ll max = 0;
+  ll cur = 0;
+  for (ll i = 0; i < 64; ++i) {
+    if (bn[i] == 1) {
+      cur += (1ull << i);
     }
-  };
+    if (bn[i] == bm[i])
+      continue;
+    if (bn[i] == 0 && bm[i] == 1)
+      return -1;
+    auto const to_add = (1ull << (i + 1)) - cur;
+    max = std::max(max, to_add);
+  }
 
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
+  cur = 0;
+  for (ll i = 0; i < 64; ++i) {
+    if (bn[i] == 1) {
+      cur += (1ull << i);
+    }
+    if (bn[i] == 1 && bm[i] == 1) {
+      auto const to_add = (1ull << (i + 1)) - cur;
+      if (max >= to_add)
+        return -1;
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  return n + max;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for{1};
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;
     } else {
       log_enabled = false;
     }
-    solve(i);
+    std::cout << solve(i) << endl;
   }
 }

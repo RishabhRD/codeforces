@@ -697,68 +697,74 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-auto solve(ll _t) {
-  auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
-
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+template <typename Predicate>
+ll binary_search(ll low, ll high, Predicate &&predicate) {
+  if (low >= high)
+    return low;
+  auto const mid = low + (high - low) / 2;
+  if (predicate(mid)) {
+    return binary_search(mid + 1, high, predicate);
+  } else {
+    return binary_search(low, mid, predicate);
   }
+}
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
+auto solve(ll _t, std::vector<std::vector<ll>> &prefix) {
+  ll const n = read<ll>();
+  ll const row =
+      binary_search(0ll, 1501ll, [&](ll i) { return (i * (i + 1)) / 2 < n; });
+  ll const last = (row * (row - 1)) / 2;
+  ll const col = n - last;
+  ll low_col = col - 1;
+  ll high_col = col - 1;
+  ll total_sum = 0;
+  // slog << n << ' ' << row << ' ' << col << endl;
+  for (ll i = row; i > 0; --i) {
+    low_col = std::max<ll>(0, low_col);
+    high_col = std::min<ll>(high_col, prefix[i - 1].size() - 1);
+    // slog << low_col << ' ' << high_col << endl;
+    ll const cur_sum =
+        (low_col == 0) ? prefix[i - 1][high_col]
+                       : prefix[i - 1][high_col] - prefix[i - 1][low_col - 1];
+    total_sum += cur_sum;
+    --low_col;
   }
-
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  // slog << total_sum << endl;
+  std::cout << total_sum << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
+  std::vector<std::vector<ll>> prefix;
+  ll prev = 0;
+  for (ll i = 0; i < 1500; ++i) {
+    ll cur_num = prev + 1;
+    ll sum = 0;
+    std::vector<ll> cur;
+    for (ll j = cur_num; j <= cur_num + i; ++j) {
+      sum += j * j;
+      cur.push_back(sum);
+    }
+    cur_num += i;
+    prev = cur_num;
+    prefix.push_back(std::move(cur));
+  }
+  // for (ll i = 0; i < 7; ++i) {
+  //   slog << "here: ";
+  //   for (auto n : prefix[i]) {
+  //     slog << n << ' ';
+  //   }
+  //   slog << endl;
+  // }
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;
     } else {
       log_enabled = false;
     }
-    solve(i);
+    solve(i, prefix);
   }
 }

@@ -335,8 +335,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,13 +345,10 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  { c.reserve(std::ranges::range_size_t<R>(0)) };
+};
 
 template <class C>
 concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
@@ -363,11 +360,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -699,51 +697,82 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto nums = read_vec<ll>(n);
+  for (auto &n : nums)
+    --n;
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  std::vector<ll> mapping(n);
+  std::vector visited(n, false);
+  std::vector<ll> req;
+  for (ll i = 0; i < n; ++i) {
+    if (visited[nums[i]]) {
+      req.push_back(i);
+    } else {
+      mapping[i] = nums[i];
+      visited[nums[i]] = true;
+    }
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
+  std::set<ll> avail;
+  std::set<ll, std::greater<>> op_avail;
   for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+    if (!visited[i]) {
+      avail.insert(i);
+      op_avail.insert(i);
+    }
+  }
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+  // for (auto n : avail)
+  //   slog << n << ' ';
+  // slog << endl;
+  //
+  // for (auto n : req)
+  //   slog << n << ' ';
+  // slog << endl;
+  //
+  // slog << endl;
+
+  ll rem_req = -1;
+  for (auto n : req) {
+    auto const next = avail.upper_bound(n);
+    auto const op_next = op_avail.upper_bound(n);
+    ll ele;
+    if (next != avail.end()) {
+      ele = *next;
+    } else if (op_next != op_avail.end()) {
+      ele = *op_next;
+    } else {
+      rem_req = n;
+      continue;
+    }
+    mapping[n] = ele;
+    avail.erase(ele);
+    op_avail.erase(ele);
+  }
+
+  if (rem_req != -1) {
+    ll ans;
+    for (ll i = 0; i < n; ++i) {
+      if (nums[i] == nums[rem_req]) {
+        ans = i;
+        break;
       }
     }
+
+    mapping[rem_req] = mapping[ans];
+    mapping[ans] = *avail.begin();
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
+  ll sum = 0;
   for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+    if (nums[i] == mapping[i])
+      ++sum;
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
+
+  std::cout << sum << endl;
+
+  for (auto n : mapping) {
+    std::cout << n + 1 << ' ';
   }
   std::cout << endl;
 }
@@ -752,7 +781,7 @@ int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

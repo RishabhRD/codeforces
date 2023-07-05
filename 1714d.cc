@@ -698,61 +698,59 @@ constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
+  auto const t = read<std::string>();
+  ll const sz = t.size();
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const strs = read_vec<std::string>(n);
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
-
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+  std::vector dp(sz, sz + 1);
+  std::vector<std::pair<ll, ll>> last(sz);
+  for (ll i = 0; i < sz; ++i) {
+    for (ll m = 0; m < n; ++m) {
+      std::string_view str = strs[m];
+      ll const prev = i - str.size() + 1;
+      if (prev < 0)
+        continue;
+      if (std::string_view{t}.substr(prev, str.size()) != str)
+        continue;
+      ll min = sz + 1;
+      ll min_idx = n;
+      for (ll j = prev - 1; j < i; ++j) {
+        if (j < 0) {
+          min_idx = -1;
+          min = 0;
+        } else {
+          if (dp[j] < min) {
+            min = dp[j];
+            min_idx = j;
+          }
+        }
+      }
+      if (1 + min < dp[i]) {
+        dp[i] = 1 + min;
+        last[i] = {m, min_idx};
       }
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  if (dp[sz - 1] == sz + 1) {
+    std::cout << -1 << endl;
+  } else {
+    std::cout << dp[sz - 1] << endl;
+    ll cur = sz - 1;
+    while (cur != -1) {
+      std::cout << last[cur].first + 1 << ' '
+                << cur - strs[last[cur].first].size() + 2 << endl;
+      cur = last[cur].second;
+    }
   }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

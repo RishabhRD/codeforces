@@ -697,62 +697,139 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
+// segment tree {{{
+// vim: foldmethod=marker
+template <typename T, typename GroupFunc> class segment_tree {
+  GroupFunc func;
+  ll n;
+  std::vector<T> arr;
+
+public:
+  segment_tree(std::vector<T> const &arr, GroupFunc func)
+      : func(std::move(func)), n(std::size(arr)), arr(n * 4) {
+    build(1, 0, n - 1, arr);
+  }
+
+  T query(ll tl, ll tr) { return query(1, 0, n - 1, tl, tr); }
+
+  void update(ll i, T const &val) {
+    update(i, [val](auto e) { return val; });
+  }
+
+  template <typename F> void update(ll i, F &&f) { update(1, 0, n - 1, i, f); }
+
+private:
+  void build(ll i, ll l, ll r, std::vector<T> const &vec) {
+    if (l == r) {
+      arr[i] = vec[l];
+    } else {
+      auto const m = l + ((r - l) / 2);
+      build(2 * i, l, m, vec);
+      build(2 * i + 1, m + 1, r, vec);
+      arr[i] = func(arr[2 * i], arr[2 * i + 1]);
+    }
+  }
+
+  T query(ll i, ll l, ll r, ll tl, ll tr) {
+    if (l == tl && r == tr)
+      return arr[i];
+    auto const m = l + ((r - l) / 2);
+    if (tl >= l and tr <= m) {
+      return query(2 * i, l, m, tl, tr);
+    } else if (tl >= (m + 1) and tr <= r) {
+      return query(2 * i + 1, m + 1, r, tl, tr);
+    } else {
+      auto const left = query(2 * i, l, m, tl, m);
+      auto const right = query(2 * i + 1, m + 1, r, m + 1, tr);
+      return func(left, right);
+    }
+  }
+
+  template <typename F> void update(ll i, ll l, ll r, ll idx, F &&f) {
+    if (l == r) {
+      arr[i] = f(arr[i]);
+      return;
+    }
+    auto const m = l + ((r - l) / 2);
+    if (idx <= m) {
+      update(2 * i, l, m, idx, f);
+    } else {
+      update(2 * i + 1, m + 1, r, idx, f);
+    }
+    arr[i] = func(arr[2 * i], arr[2 * i + 1]);
+  }
+};
+
+template <typename T, typename GroupFunc>
+segment_tree(std::vector<T> const &, GroupFunc) -> segment_tree<T, GroupFunc>;
+// segment tree }}}
+
+auto solve_for_suffix(std::vector<ll> const &nums, ll target) {
+  std::vector<std::pair<ll, ll>> en;
+  for (ll i = 0; i < nums.size(); ++i) {
+    en.push_back({nums[i], i});
+  }
+
+  segment_tree sum_tree{nums, std::plus<>{}};
+  segment_tree min_tree{en, lift(std::min)};
+  ll cnt = 0;
+  ll sum = 0;
+  for (ll i = target + 1; i < nums.size(); ++i) {
+    while (sum_tree.query(0, target) > sum_tree.query(0, i)) {
+      auto const [min_ele, min_pos] = min_tree.query(target + 1, i);
+      min_tree.update(min_pos, [](auto a) {
+        a.first = -a.first;
+        return a;
+      });
+      sum_tree.update(min_pos, std::bind_front(std::minus<>{}, 0));
+      ++cnt;
+    }
+  }
+  return cnt;
+}
+
+auto solve_for_prefix(std::vector<ll> const &nums, ll target) {
+  std::vector<std::pair<ll, ll>> en;
+  for (ll i = 0; i < nums.size(); ++i) {
+    en.push_back({nums[i], i});
+  }
+
+  segment_tree sum_tree{nums, std::plus<>{}};
+  segment_tree max_tree{en, lift(std::max)};
+
+  ll cnt = 0;
+  for (ll i = target; i >= 0; --i) {
+    while (sum_tree.query(0, target) > sum_tree.query(0, i)) {
+      auto const [max_ele, max_pos] = max_tree.query(i + 1, target);
+      max_tree.update(max_pos, [](auto a) {
+        a.first = -a.first;
+        return a;
+      });
+      sum_tree.update(max_pos, std::bind_front(std::minus<>{}, 0));
+      ++cnt;
+    }
+  }
+
+  return cnt;
+}
+
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const t = read<ll>() - 1;
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  auto const nums = read_vec<ll>(n);
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
+  auto const suffix = solve_for_suffix(nums, t);
+  auto const prefix = solve_for_prefix(nums, t);
 
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
-  }
-
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << prefix + suffix << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

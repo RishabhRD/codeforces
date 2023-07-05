@@ -698,67 +698,35 @@ constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
+  ll constexpr factor = 1e7;
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const k = read<ll>();
+  auto nums = read_vec<ll>(n);
+  rng::transform(nums, std::begin(nums),
+                 std::bind_front(std::multiplies<>{}, factor));
+  rng::sort(nums);
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
-
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
+  auto can_do_it = [&](auto m) {
+    auto mid = rng::upper_bound(nums, m);
+    auto const extra =
+        std::reduce(mid, std::end(nums), 0ll) - (std::end(nums) - mid) * m;
+    auto const required =
+        (mid - std::begin(nums)) * m - std::reduce(std::begin(nums), mid, 0ll);
+    auto const useful = extra - (extra * k) / 100.0;
+    return useful >= required;
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  ll constexpr max = 1e10;
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+  auto const res =
+      (*rng::partition_point(vw::iota(0ll, max + 1), can_do_it) - 1) /
+      double(factor);
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
-    }
-  }
-
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << std::setprecision(8) << res << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
-  auto t = read<ll>();
-  std::set<ll> enabled_for{0};
-  for (ll i = 0; i < t; ++i) {
-    if (enabled_for.count(i) || enabled_for.size() == 0) {
-      log_enabled = true;
-    } else {
-      log_enabled = false;
-    }
-    solve(i);
-  }
+  solve(0);
 }

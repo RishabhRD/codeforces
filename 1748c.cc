@@ -699,60 +699,44 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const nums = read_vec<ll>(n);
 
-  std::vector prefix(b);
+  std::vector prefix(nums);
   for (ll i = 1; i < n; ++i) {
     prefix[i] += prefix[i - 1];
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
+  ll sum = 0;
+  ll last = n;
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  std::unordered_map<ll, ll> freq;
+  for (ll i = n - 1; i >= 0; --i) {
+    ++freq[prefix[i]];
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+    if (nums[i] == 0) {
+      ll max = 0;
+      for (auto [k, v] : freq) {
+        max = std::max(max, v);
       }
+      sum += max;
+      freq.clear();
+      last = i;
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  for (ll i = 0; i < last; ++i) {
+    if (prefix[i] == 0)
+      ++sum;
   }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << sum << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

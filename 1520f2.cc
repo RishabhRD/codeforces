@@ -335,8 +335,8 @@ public:
 
 auto s_comb = rd::curried(
     [](auto &&f, auto ele) requires std::invocable<decltype(f), decltype(ele)> {
-                             return std::pair{ele, std::invoke(f, ele)};
-                           });
+      return std::pair{ele, std::invoke(f, ele)};
+    });
 } // namespace rd
 
 // }}}
@@ -345,13 +345,10 @@ auto s_comb = rd::curried(
 namespace rd {
 namespace detail {
 template <class C, class R>
-concept reservable = std::ranges::sized_range<R> &&
-                     requires(C &c, R &&rng) {
-                       {
-                         c.capacity()
-                         } -> std::same_as<std::ranges::range_size_t<C>>;
-                       { c.reserve(std::ranges::range_size_t<R>(0)) };
-                     };
+concept reservable = std::ranges::sized_range<R> && requires(C &c, R &&rng) {
+  { c.capacity() } -> std::same_as<std::ranges::range_size_t<C>>;
+  { c.reserve(std::ranges::range_size_t<R>(0)) };
+};
 
 template <class C>
 concept insertable = requires(C c) { std::inserter(c, std::ranges::end(c)); };
@@ -363,11 +360,12 @@ template <class C, class R>
 concept matroshkable =
     std::ranges::input_range<C> && std::ranges::input_range<R> &&
     std::ranges::input_range<std::ranges::range_value_t<C>> &&
-    std::ranges::input_range<std::ranges::range_value_t<R>> && !
-std::ranges::view<std::ranges::range_value_t<C>> &&std::indirectly_copyable<
-    std::ranges::iterator_t<std::ranges::range_value_t<R>>,
-    std::ranges::iterator_t<std::ranges::range_value_t<C>>>
-    &&detail::insertable<C>;
+    std::ranges::input_range<std::ranges::range_value_t<R>> &&
+    !std::ranges::view<std::ranges::range_value_t<C>> &&
+    std::indirectly_copyable<
+        std::ranges::iterator_t<std::ranges::range_value_t<R>>,
+        std::ranges::iterator_t<std::ranges::range_value_t<C>>> &&
+    detail::insertable<C>;
 
 template <std::ranges::input_range R> struct fake_input_iterator {
   using iterator_category = std::input_iterator_tag;
@@ -697,68 +695,115 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-auto solve(ll _t) {
-  auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+// segment tree {{{
+// vim: foldmethod=marker
+template <typename T, typename GroupFunc> class segment_tree {
+  GroupFunc func;
+  ll n;
+  std::vector<T> arr;
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+public:
+  segment_tree(std::vector<T> const &arr, GroupFunc func)
+      : func(std::move(func)), n(std::size(arr)), arr(n * 4) {
+    build(1, 0, n - 1, arr);
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
+  T query(ll tl, ll tr) { return query(1, 0, n - 1, tl, tr); }
+
+  void update(ll i, T const &val) {
+    update(i, [val](auto e) { return val; });
+  }
+
+  template <typename F> void update(ll i, F &&f) { update(1, 0, n - 1, i, f); }
+
+private:
+  void build(ll i, ll l, ll r, std::vector<T> const &vec) {
+    if (l == r) {
+      arr[i] = vec[l];
     } else {
-      return prefix[j] - prefix[i - 1];
+      auto const m = l + ((r - l) / 2);
+      build(2 * i, l, m, vec);
+      build(2 * i + 1, m + 1, r, vec);
+      arr[i] = func(arr[2 * i], arr[2 * i + 1]);
+    }
+  }
+
+  T query(ll i, ll l, ll r, ll tl, ll tr) {
+    if (l == tl && r == tr)
+      return arr[i];
+    auto const m = l + ((r - l) / 2);
+    if (tl >= l and tr <= m) {
+      return query(2 * i, l, m, tl, tr);
+    } else if (tl >= (m + 1) and tr <= r) {
+      return query(2 * i + 1, m + 1, r, tl, tr);
+    } else {
+      auto const left = query(2 * i, l, m, tl, m);
+      auto const right = query(2 * i + 1, m + 1, r, m + 1, tr);
+      return func(left, right);
+    }
+  }
+
+  template <typename F> void update(ll i, ll l, ll r, ll idx, F &&f) {
+    if (l == r) {
+      arr[i] = f(arr[i]);
+      return;
+    }
+    auto const m = l + ((r - l) / 2);
+    if (idx <= m) {
+      update(2 * i, l, m, idx, f);
+    } else {
+      update(2 * i + 1, m + 1, r, idx, f);
+    }
+    arr[i] = func(arr[2 * i], arr[2 * i + 1]);
+  }
+};
+
+template <typename T, typename GroupFunc>
+segment_tree(std::vector<T> const &, GroupFunc) -> segment_tree<T, GroupFunc>;
+// segment tree }}}
+
+auto solve(ll _t) {
+  auto const n = read<ll>();
+  auto t = read<ll>();
+  segment_tree stree(std::vector<ll>(n, 0ll), std::plus<>{});
+  std::map<ll, ll> cache;
+
+  auto get_till = [&](ll n) {
+    if (cache.count(n)) {
+      auto const old_res = cache[n];
+      return old_res + stree.query(0, n);
+    } else {
+      std::cout << "? " << 1 << ' ' << n + 1 << std::endl;
+      ll const s = read<ll>();
+      cache[n] = s - stree.query(0, n);
+      return s;
     }
   };
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  while (t--) {
+    auto const k = read<ll>();
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+    ll low = 0;
+    ll high = n;
+    while (low < high) {
+      ll const mid = (low + high) / 2;
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
+      auto const s = get_till(mid);
+      if (mid + 1 - s < k) {
+        low = mid + 1;
       } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+        high = mid;
       }
     }
-  }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+    stree.update(low, [](auto n) { return n + 1; });
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+    std::cout << "! " << low + 1 << std::endl;
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
-  auto t = read<ll>();
-  std::set<ll> enabled_for{0};
-  for (ll i = 0; i < t; ++i) {
-    if (enabled_for.count(i) || enabled_for.size() == 0) {
-      log_enabled = true;
-    } else {
-      log_enabled = false;
-    }
-    solve(i);
-  }
+  solve(0);
 }

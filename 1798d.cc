@@ -697,68 +697,82 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-auto solve(ll _t) {
+auto solve(ll _t) -> std::optional<std::vector<ll>> {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const nums = read_vec<ll>(n);
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
+  ll const max = *rng::max_element(nums);
+  ll const min = *rng::min_element(nums);
+
+  std::vector<ll> res;
+  std::vector<ll> pos;
+  std::vector<ll> neg;
+
+  for (auto n : nums) {
+    if (n == 0) {
+      res.push_back(n);
+    } else if (n > 0) {
+      pos.push_back(n);
+    } else {
+      neg.push_back(n);
+    }
   }
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
+  ll min_prefix_sum = 0;
+  ll max_prefix_sum = 0;
 
-  std::vector val(n, std::pair{0ll, 0ll});
+  ll cur_prefix_sum = 0;
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
+  while (pos.size() || neg.size()) {
+    if (cur_prefix_sum > 0) {
+      if (neg.size()) {
+        res.push_back(neg.back());
+        neg.pop_back();
       } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+        res.push_back(pos.back());
+        pos.pop_back();
+      }
+    } else {
+      if (pos.size()) {
+        res.push_back(pos.back());
+        pos.pop_back();
+      } else {
+        res.push_back(neg.back());
+        neg.pop_back();
       }
     }
+    cur_prefix_sum += res.back();
+    max_prefix_sum = std::max(max_prefix_sum, cur_prefix_sum);
+    min_prefix_sum = std::min(min_prefix_sum, cur_prefix_sum);
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  if (max_prefix_sum - min_prefix_sum >= max - min) {
+    return std::nullopt;
   }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  return res;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;
     } else {
       log_enabled = false;
     }
-    solve(i);
+    auto const res = solve(i);
+    if (res.has_value()) {
+      std::cout << "YES" << endl;
+      for (auto n : res.value()) {
+        std::cout << n << ' ';
+      }
+      std::cout << endl;
+    } else {
+      std::cout << "NO" << endl;
+    }
   }
 }

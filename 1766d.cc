@@ -697,68 +697,74 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
-auto solve(ll _t) {
-  auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
-
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
-
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
+auto get_prime_factors(ll n, std::vector<ll> const &min_prime) {
+  std::vector<ll> res;
+  if (min_prime[n] == -1)
+    return res;
+  while (n != 1) {
+    auto const cur_prime = min_prime[n];
+    while (n % cur_prime == 0) {
+      n /= cur_prime;
     }
-  };
+    res.push_back(cur_prime);
+  }
+  return res;
+}
 
-  std::vector val(n, std::pair{0ll, 0ll});
+auto seive(ll max) {
+  std::vector<ll> min_prime(max + 1, -1);
 
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+  for (ll i = 2; i <= max; ++i) {
+    if (min_prime[i] == -1) {
+      for (ll j = i; j <= max; j += i) {
+        if (min_prime[j] == -1)
+          min_prime[j] = i;
       }
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
+  return min_prime;
+}
+
+ll solve_for(ll x, ll y, std::vector<ll> const &min_prime) {
+  if (x > y) {
+    return solve_for(y, x, min_prime);
   }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+  auto m = y - x;
+
+  ll nx = INT32_MAX;
+  auto const primes = get_prime_factors(m, min_prime);
+  for (auto p : primes) {
+    ll const cur_nx = p * std::ceil(x / double(p));
+    nx = std::min(nx, cur_nx);
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+
+  if (nx == INT32_MAX)
+    return -1;
+
+  return nx - x;
+}
+
+auto solve(ll _t, std::vector<ll> const &min_prime) {
+  auto const x = read<ll>();
+  auto const y = read<ll>();
+
+  std::cout << solve_for(x, y, min_prime) << endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  auto const prime_factors = seive(1e7);
+  std::set<ll> enabled_for{1};
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;
     } else {
       log_enabled = false;
     }
-    solve(i);
+    solve(i, prime_factors);
   }
 }

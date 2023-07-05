@@ -697,62 +697,61 @@ constexpr auto sum = rd::pipeable{detail::sum_t{}};
 constexpr ll mod = 1e9 + 7;
 using mii = ModInt::mod_int_t<mod>;
 
+auto get_index_of(std::string_view str) {
+  ll cur = 0;
+  std::unordered_map<char, ll> idx;
+
+  for (auto c : str) {
+    if (idx.count(c))
+      continue;
+    idx[c] = cur++;
+  }
+  return idx;
+}
+
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const k = read<ll>();
+  auto const a = read<std::string>();
+  auto const b = read<std::string>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  auto const idx = get_index_of(a);
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
-
-  for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
-
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
+  auto score_of = [&](std::bitset<10> bs) {
+    ll score = 0;
+    ll cur = 0;
+    for (ll i = 0; i < n; ++i) {
+      if (a[i] == b[i] || bs[idx.at(a[i])]) {
+        ++cur;
       } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
+        score += cur * (cur + 1) / 2;
+        cur = 0;
       }
     }
+    score += cur * (cur + 1) / 2;
+    return score;
+  };
+
+  ll const max_size = idx.size();
+  ll const max_selection_possible = std::min(k, max_size);
+
+  ll max_score = score_of(std::bitset<10>(0));
+
+  for (ll i = 0; i < (1 << max_size); ++i) {
+    std::bitset<10> bs(i);
+    if (bs.count() == max_selection_possible) {
+      max_score = std::max(max_score, score_of(bs));
+    }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
-
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
-  }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
+  std::cout << max_score << std::endl;
 }
 
 int main() {
   std::ios_base::sync_with_stdio(0);
   std::cin.tie(0);
   auto t = read<ll>();
-  std::set<ll> enabled_for{0};
+  std::set<ll> enabled_for;
   for (ll i = 0; i < t; ++i) {
     if (enabled_for.count(i) || enabled_for.size() == 0) {
       log_enabled = true;

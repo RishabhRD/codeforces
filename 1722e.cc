@@ -699,53 +699,53 @@ using mii = ModInt::mod_int_t<mod>;
 
 auto solve(ll _t) {
   auto const n = read<ll>();
-  auto const a = read_vec<ll>(n);
-  auto const b = read_vec<ll>(n);
+  auto const q = read<ll>();
 
-  std::vector prefix(b);
-  for (ll i = 1; i < n; ++i) {
-    prefix[i] += prefix[i - 1];
-  }
+  ll constexpr max_dim = 1000;
 
-  auto const get_sum = [&](ll i, ll j) {
-    if (i == 0) {
-      return prefix[j];
-    } else {
-      return prefix[j] - prefix[i - 1];
-    }
-  };
-
-  std::vector val(n, std::pair{0ll, 0ll});
+  std::vector area(max_dim + 1, std::vector(max_dim + 1, 0ll));
 
   for (ll i = 0; i < n; ++i) {
-    auto const j = *rng::partition_point(
-        vw::iota(i, n), [&](auto j) { return get_sum(i, j) < a[i]; });
+    auto const a = read<ll>();
+    auto const b = read<ll>();
 
-    if (j != n) {
-      ++val[j].first;
-      if (j == i) {
-        val[j].second += a[i];
-      } else {
-        val[j].second += a[i] - get_sum(i, j - 1);
-      }
+    area[a][b] += a * b;
+  }
+
+  // for (ll i = 0; i <= 6; ++i) {
+  //   for (ll j = 0; j <= 6; ++j) {
+  //     slog << area[i][j] << ' ';
+  //   }
+  //   slog << endl;
+  // }
+  //
+  // slog << endl;
+
+  std::vector prefix(area);
+  for (ll i = 1; i <= max_dim; ++i) {
+    for (ll j = 1; j <= max_dim; ++j) {
+      prefix[i][j] +=
+          prefix[i - 1][j] + prefix[i][j - 1] - prefix[i - 1][j - 1];
     }
   }
 
-  std::vector num_completed(n, 0ll);
-  num_completed[0] = val[0].first;
-  for (ll i = 1; i < n; ++i) {
-    num_completed[i] = val[i].first + num_completed[i - 1];
-  }
+  // for (ll i = 0; i <= 6; ++i) {
+  //   for (ll j = 0; j <= 6; ++j) {
+  //     slog << prefix[i][j] << ' ';
+  //   }
+  //   slog << endl;
+  // }
 
-  std::vector<ll> ans(n);
-  for (ll i = 0; i < n; ++i) {
-    ans[i] = (i + 1 - num_completed[i]) * b[i];
-    ans[i] += val[i].second;
+  for (ll i = 0; i < q; ++i) {
+    auto const hs = read<ll>();
+    auto const ws = read<ll>();
+    auto const hb = read<ll>() - 1;
+    auto const wb = read<ll>() - 1;
+
+    std::cout << prefix[hb][wb] - prefix[hs][wb] - prefix[hb][ws] +
+                     prefix[hs][ws]
+              << endl;
   }
-  for (auto n : ans) {
-    std::cout << n << ' ';
-  }
-  std::cout << endl;
 }
 
 int main() {
